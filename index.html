@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다시입다 — 옷 리폼 아이디어 분석기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#262220;
+    --ink-soft:#5b5551;
+    --paper:#F7F4EC;
+    --paper-card:#FFFFFF;
+    --denim:#2B3B52;
+    --denim-dark:#1B2636;
+    --thread:#B9812E;
+    --thread-light:#EFD9A8;
+    --line: rgba(38,34,32,.14);
+    --danger:#A3402E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    line-height:1.6;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+  }
+  .eyebrow{
+    font-size:13px;
+    color:var(--thread);
+    font-weight:600;
+    letter-spacing:0.02em;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:38px;
+    line-height:1.15;
+    margin:8px 0 14px;
+    color:var(--denim-dark);
+  }
+  .lede{
+    font-size:16px;
+    color:var(--ink-soft);
+    max-width:46ch;
+    margin:0 0 40px;
+  }
+  .tag-card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px;
+    position:relative;
+  }
+  .tag-card::before{
+    content:'';
+    position:absolute;
+    top:-1px; left:32px;
+    width:14px; height:14px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:50%;
+    transform:translateY(-50%);
+  }
+  .upload-zone{
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:32px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .upload-zone:hover{
+    border-color:var(--thread);
+    background:rgba(185,129,46,0.04);
+  }
+  .upload-zone.has-image{
+    padding:0;
+    border-style:solid;
+    overflow:hidden;
+  }
+  .upload-zone img{
+    display:block;
+    width:100%;
+    max-height:360px;
+    object-fit:cover;
+  }
+  .upload-icon{
+    width:34px; height:34px;
+    margin:0 auto 12px;
+    color:var(--thread);
+  }
+  .upload-label{
+    font-size:14px;
+    color:var(--ink-soft);
+  }
+  .upload-label strong{
+    color:var(--ink);
+    font-weight:600;
+  }
+  input[type=file]{ display:none; }
+  .replace-btn{
+    margin-top:14px;
+    font-size:13px;
+    color:var(--ink-soft);
+    background:none;
+    border:none;
+    text-decoration:underline;
+    cursor:pointer;
+    padding:0;
+    font-family:inherit;
+  }
+  .analyze-btn{
+    width:100%;
+    margin-top:20px;
+    padding:15px;
+    border:none;
+    border-radius:8px;
+    background:var(--denim-dark);
+    color:var(--paper);
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+    transition:background .15s ease, opacity .15s ease;
+  }
+  .analyze-btn:disabled{
+    background:#c9c4bb;
+    cursor:not-allowed;
+  }
+  .analyze-btn:not(:disabled):hover{
+    background:var(--denim);
+  }
+  .status-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:18px;
+    font-size:14px;
+    color:var(--ink-soft);
+  }
+  .spinner{
+    width:16px; height:16px;
+    border-radius:50%;
+    border:2px solid var(--thread-light);
+    border-top-color:var(--thread);
+    animation:spin .8s linear infinite;
+    flex-shrink:0;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .error-box{
+    margin-top:18px;
+    padding:14px 16px;
+    border-radius:8px;
+    background:rgba(163,64,46,0.08);
+    border:1px solid rgba(163,64,46,0.25);
+    color:var(--danger);
+    font-size:14px;
+  }
+  .results{
+    margin-top:44px;
+  }
+  .results-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:18px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .results-head h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:22px;
+    margin:0;
+    color:var(--denim-dark);
+  }
+  .meta-line{
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .meta-line span{ color:var(--ink); font-weight:500; }
+  .idea-card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:22px;
+    margin-bottom:14px;
+  }
+  .idea-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:8px;
+  }
+  .idea-title{
+    font-family:'Fraunces', serif;
+    font-size:18px;
+    font-weight:500;
+    color:var(--ink);
+    margin:0;
+  }
+  .difficulty{
+    flex-shrink:0;
+    font-size:12px;
+    font-weight:600;
+    padding:4px 10px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .diff-쉬움{ background:#E3EEDC; color:#3E6B2C; }
+  .diff-보통{ background:var(--thread-light); color:#7A551C; }
+  .diff-어려움{ background:#F3DAD5; color:var(--danger); }
+  .idea-desc{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:0 0 10px;
+  }
+  .idea-materials{
+    font-size:13px;
+    color:var(--ink-soft);
+    border-top:1px dashed var(--line);
+    padding-top:10px;
+    margin-bottom:16px;
+  }
+  .idea-materials strong{
+    color:var(--ink);
+    font-weight:600;
+  }
+  .steps-block-label{
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+  }
+  .steps-row{
+    display:flex;
+    align-items:flex-start;
+    overflow-x:auto;
+    padding-bottom:4px;
+    margin-bottom:16px;
+  }
+  .step{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:78px;
+    flex-shrink:0;
+    text-align:center;
+    position:relative;
+  }
+  .step-icon{
+    width:38px; height:38px;
+    border-radius:50%;
+    background:var(--thread-light);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--thread);
+    margin-bottom:6px;
+    position:relative;
+  }
+  .step-num{
+    position:absolute;
+    top:-4px; right:-2px;
+    width:15px; height:15px;
+    border-radius:50%;
+    background:var(--denim-dark);
+    color:var(--paper);
+    font-size:9px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .step-label{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.3;
+  }
+  .step-connector{
+    flex:1;
+    height:1px;
+    background:var(--line);
+    margin-top:19px;
+    min-width:10px;
+  }
+  .ref-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    color:var(--denim);
+    text-decoration:none;
+    font-weight:600;
+    padding-top:12px;
+    width:100%;
+  }
+  .ref-link:hover{ color:var(--thread); }
+  .ref-link svg{ width:15px; height:15px; flex-shrink:0; }
+  .thumb-block{
+    border-top:1px dashed var(--line);
+    padding-top:12px;
+    margin-top:2px;
+  }
+  .thumb-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .thumb-link{
+    display:block;
+    width:72px; height:72px;
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--paper);
+    border:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .thumb-link img{
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .thumb-skeleton{
+    width:72px; height:72px;
+    border-radius:8px;
+    background:linear-gradient(90deg, var(--paper) 25%, #efece3 50%, var(--paper) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.3s infinite;
+    flex-shrink:0;
+  }
+  @keyframes shimmer{
+    0%{ background-position:200% 0; }
+    100%{ background-position:-200% 0; }
+  }
+  .thumb-caption{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:0 0 4px;
+  }
+  .gen-block{
+    border-top:1px dashed var(--line);
+    padding-top:12px;
+    margin-top:12px;
+  }
+  .gen-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:none;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:8px 14px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--denim);
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .gen-btn:hover{ border-color:var(--thread); color:var(--thread); }
+  .gen-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .gen-result img{
+    width:100%;
+    max-width:280px;
+    border-radius:10px;
+    display:block;
+    border:1px solid var(--line);
+  }
+  .gen-result-caption{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+  .gen-error{
+    font-size:13px;
+    color:var(--danger);
+    margin:0 0 8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">프로토타입</div>
+  <h1>안 입는 옷, 다시 쓸모를 찾아드려요</h1>
+  <p class="lede">옷 사진 한 장이면 소재와 상태를 보고, 실제로 만들 수 있는 리폼 아이디어를 찾아드려요.</p>
+
+  <div class="tag-card">
+    <label class="upload-zone" id="uploadZone" for="fileInput">
+      <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 16V4M12 4L7 9M12 4l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="upload-label" id="uploadLabel"><strong>사진을 올려주세요</strong><br>클릭해서 옷 사진 선택</div>
+    </label>
+    <input type="file" id="fileInput" accept="image/*">
+    <button class="replace-btn" id="replaceBtn" style="display:none;">다른 사진 선택</button>
+    <button class="analyze-btn" id="analyzeBtn" disabled>리폼 아이디어 분석하기</button>
+    <div class="status-row" id="statusRow" style="display:none;">
+      <div class="spinner"></div>
+      <span id="statusText">사진을 살펴보는 중...</span>
+    </div>
+    <div class="error-box" id="errorBox" style="display:none;"></div>
+  </div>
+
+  <div class="results" id="results" style="display:none;">
+    <div class="results-head">
+      <h2>리폼 제안</h2>
+    </div>
+    <div class="meta-line" id="metaLine" style="margin-bottom:20px;"></div>
+    <div id="ideaList"></div>
+  </div>
+</div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+const replaceBtn = document.getElementById('replaceBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const statusRow = document.getElementById('statusRow');
+const statusText = document.getElementById('statusText');
+const errorBox = document.getElementById('errorBox');
+const results = document.getElementById('results');
+const metaLine = document.getElementById('metaLine');
+const ideaList = document.getElementById('ideaList');
+
+let base64Data = null;
+let mediaType = null;
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  mediaType = file.type;
+  const reader = new FileReader();
+  reader.onload = () => {
+    base64Data = reader.result.split(',')[1];
+    uploadZone.classList.add('has-image');
+    uploadZone.innerHTML = `<img src="${reader.result}" alt="업로드한 옷 사진">`;
+    replaceBtn.style.display = 'inline-block';
+    analyzeBtn.disabled = false;
+    errorBox.style.display = 'none';
+    results.style.display = 'none';
+  };
+  reader.onerror = () => showError('사진을 읽는 중 문제가 생겼어요. 다시 시도해 주세요.');
+  reader.readAsDataURL(file);
+});
+
+replaceBtn.addEventListener('click', () => fileInput.click());
+
+function showError(msg){
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+}
+
+function setLoading(isLoading, label){
+  analyzeBtn.disabled = isLoading;
+  statusRow.style.display = isLoading ? 'flex' : 'none';
+  if (label) statusText.textContent = label;
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!base64Data) return;
+  errorBox.style.display = 'none';
+  results.style.display = 'none';
+  setLoading(true, '옷의 종류와 상태를 살펴보는 중... (핀터레스트 사례도 함께 찾고 있어요)');
+
+  try{
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64Data, mediaType })
+    });
+
+    const parsed = await response.json();
+    if (!response.ok){
+      throw new Error(parsed.error || '분석 요청이 실패했어요.');
+    }
+
+    renderResults(parsed);
+  }catch(err){
+    showError(err.message || '분석 중 문제가 생겼어요. 다시 시도해 주세요.');
+  }finally{
+    setLoading(false);
+  }
+});
+
+const ICONS = {
+  scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6" stroke-linecap="round"/></svg>',
+  needle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16c3-6 8-10 14-11" stroke-linecap="round"/><ellipse cx="18.5" cy="4.5" rx="1.6" ry="1.1" transform="rotate(30 18.5 4.5)"/><path d="M4 16c1.5 1 2.8 1.6 4.2 1.8" stroke-linecap="round"/></svg>',
+  fold: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h9a4 4 0 010 8H8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 11L8 14l2.5 3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  glue: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c3 4 5 7 5 10a5 5 0 01-10 0c0-3 2-6 5-10z" stroke-linejoin="round"/></svg>',
+  iron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16h11l4-4-3-6H8L4 12v4z" stroke-linejoin="round"/><path d="M8 20h9" stroke-linecap="round"/></svg>',
+  ruler: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="8" width="17" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3" stroke-linecap="round"/></svg>',
+  dot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/></svg>'
+};
+
+function pickIcon(label){
+  const l = label || '';
+  if (l.includes('자르') || l.includes('재단') || l.includes('가위')) return ICONS.scissors;
+  if (l.includes('박음') || l.includes('바느') || l.includes('꿰매') || l.includes('시침') || l.includes('바늘')) return ICONS.needle;
+  if (l.includes('접') || l.includes('접기')) return ICONS.fold;
+  if (l.includes('붙이') || l.includes('접착') || l.includes('본드')) return ICONS.glue;
+  if (l.includes('다림') || l.includes('다리미')) return ICONS.iron;
+  if (l.includes('표시') || l.includes('측정') || l.includes('치수') || l.includes('자로')) return ICONS.ruler;
+  return ICONS.dot;
+}
+
+function buildSteps(steps){
+  if (!steps || !steps.length) return '';
+  const stepEls = steps.map((s, i) => {
+    const isLast = i === steps.length - 1;
+    return `
+      <div class="step">
+        <div class="step-icon">${pickIcon(s)}<span class="step-num">${i+1}</span></div>
+        <div class="step-label">${escapeHtml(s)}</div>
+      </div>
+      ${isLast ? '' : '<div class="step-connector"></div>'}
+    `;
+  }).join('');
+  return `<div class="steps-block-label">만드는 방법</div><div class="steps-row">${stepEls}</div>`;
+}
+
+function buildRefLink(idea){
+  const query = idea.search_query || idea.title || '';
+  const url = 'https://www.pinterest.com/search/pins/?q=' + encodeURIComponent(query);
+  return `
+    <a class="ref-link" href="${url}" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+      핀터레스트에서 더 많은 사례 보기
+    </a>
+  `;
+}
+
+function renderResults(parsed){
+  metaLine.innerHTML = `<span>${escapeHtml(parsed.garment_type || '')}</span> · ${escapeHtml(parsed.condition || '')} · ${escapeHtml(parsed.estimated_fabric || '')}`;
+
+  ideaList.innerHTML = '';
+  const ideas = parsed.ideas || [];
+
+  ideas.forEach((idea, idx) => {
+    const diffClass = 'diff-' + (idea.difficulty || '보통').trim();
+    const card = document.createElement('div');
+    card.className = 'idea-card';
+    const pins = (idea.pinterest_pins || []).slice(0, 3);
+    const thumbBlockId = 'thumbs-' + idx;
+    const genBlockId = 'gen-' + idx;
+
+    card.innerHTML = `
+      <div class="idea-head">
+        <h3 class="idea-title">${escapeHtml(idea.title || '')}</h3>
+        <span class="difficulty ${diffClass}">${escapeHtml(idea.difficulty || '보통')}</span>
+      </div>
+      <p class="idea-desc">${escapeHtml(idea.description || '')}</p>
+      <div class="idea-materials"><strong>필요한 것</strong> · ${escapeHtml(idea.materials || '')}</div>
+      ${buildSteps(idea.steps)}
+      <div class="thumb-block" id="${thumbBlockId}">
+        ${pins.length ? '<p class="thumb-caption">핀터레스트 실제 사례</p><div class="thumb-row">' + pins.map(() => '<div class="thumb-skeleton"></div>').join('') + '</div>' : ''}
+        ${buildRefLink(idea)}
+      </div>
+      <div class="gen-block" id="${genBlockId}">
+        <div class="gen-status">
+          <div class="spinner"></div>
+          <span>AI가 리폼 결과를 그리는 중...</span>
+        </div>
+      </div>
+    `;
+    ideaList.appendChild(card);
+
+    if (pins.length) loadThumbnails(thumbBlockId, pins);
+  });
+
+  results.style.display = 'block';
+
+  // 3개 아이디어 이미지를 동시에(병렬) 자동 생성 — 각자 독립적인 백엔드 요청이라 서로 기다릴 필요 없음
+  ideas.forEach((idea, idx) => generateReformImage(idea, 'gen-' + idx));
+}
+
+async function loadThumbnails(blockId, pinUrls){
+  const outcomes = await Promise.allSettled(pinUrls.map(fetchPinThumbnail));
+  const block = document.getElementById(blockId);
+  if (!block) return;
+  const row = block.querySelector('.thumb-row');
+  if (!row) return;
+
+  const succeeded = outcomes
+    .map(r => r.status === 'fulfilled' ? r.value : null)
+    .filter(Boolean);
+
+  if (!succeeded.length){
+    row.remove();
+    const caption = block.querySelector('.thumb-caption');
+    if (caption) caption.remove();
+    return;
+  }
+
+  row.innerHTML = succeeded.map(item => `
+    <a class="thumb-link" href="${item.pinUrl}" target="_blank" rel="noopener">
+      <img src="${item.thumbUrl}" alt="핀터레스트 리폼 사례" loading="lazy">
+    </a>
+  `).join('');
+}
+
+async function fetchPinThumbnail(pinUrl){
+  const res = await fetch('https://www.pinterest.com/oembed.json?url=' + encodeURIComponent(pinUrl));
+  if (!res.ok) throw new Error('oembed failed');
+  const data = await res.json();
+  if (!data.thumbnail_url) throw new Error('no thumbnail');
+  return { thumbUrl: data.thumbnail_url, pinUrl };
+}
+
+async function generateReformImage(idea, genBlockId){
+  const block = document.getElementById(genBlockId);
+  if (!block) return;
+
+  try{
+    const res = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: base64Data,
+        mediaType,
+        title: idea.title,
+        description: idea.description
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.imageDataUrl){
+      throw new Error(data.error || '이미지 생성에 실패했어요.');
+    }
+
+    block.innerHTML = `
+      <div class="gen-result">
+        <img src="${data.imageDataUrl}" alt="AI가 생성한 ${escapeHtml(idea.title || '')} 리폼 예상 이미지">
+        <p class="gen-result-caption">AI 생성 이미지 · 실제 결과물과 다를 수 있어요</p>
+      </div>
+    `;
+  }catch(err){
+    block.innerHTML = `
+      <p class="gen-error">${escapeHtml(err.message || '이미지 생성 중 문제가 생겼어요.')}</p>
+      <button class="gen-btn retry-btn">다시 시도</button>
+    `;
+    block.querySelector('.retry-btn').addEventListener('click', () => {
+      block.innerHTML = `
+        <div class="gen-status">
+          <div class="spinner"></div>
+          <span>AI가 리폼 결과를 그리는 중...</span>
+        </div>
+      `;
+      generateReformImage(idea, genBlockId);
+    });
+  }
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
